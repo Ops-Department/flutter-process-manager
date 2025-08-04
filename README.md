@@ -58,11 +58,14 @@ Future<void> runPing() async {
   // Use the callbacks to print output as it arrives
   final processId = await pm.startProcess(
     'ping -c 5 google.com',
-    onStdout: (data) {
-      print('STDOUT: $data');
+    onStdout: (pmi_data) {
+      print('STDOUT: $pmi_data');
     },
-    onStderr: (data) {
-      print('STDERR: $data');
+    onStderr: (pmi_data) {
+      print('STDERR: $pmi_data');
+    },
+    onExit: (pmi_data) {
+      print('Process exited with code: ${pmi_data.exitCode}');
     },
   );
   
@@ -72,41 +75,7 @@ Future<void> runPing() async {
 
 ```
 
-#### 3. Handling Process Termination (`onExit`)
-
-Instead of a direct `onExit` callback, you can use the `exitCodeFuture` from the `ProcessInfo` object. This `Future` completes with the process's exit code when it terminates, providing a clear and non-blocking way to react to the end of a process.
-
-**Example:** Using `exitCodeFuture`
-
-```
-import 'pm.dart';
-
-Future<void> runAndHandleExit() async {
-  final pm = ProcessManagerService();
-
-  final processId = await pm.startProcess('ls -l');
-  final processInfo = pm.getProcessInfo(processId);
-
-  if (processInfo != null) {
-    // This code will run when the process exits
-    processInfo.exitCodeFuture.then((exitCode) {
-      print('Process exited with code: $exitCode');
-
-      // Now you can access the full output history
-      print('\n--- Full STDOUT History ---');
-      processInfo.stdoutLines.forEach(print);
-      
-      print('\n--- Full STDERR History ---');
-      processInfo.stderrLines.forEach(print);
-    });
-  }
-  
-  pm.dispose();
-}
-
-```
-
-#### 4. Stopping a Running Process
+#### 3. Stopping a Running Process
 
 You can terminate a running process using its `id` with the `stopProcess` method. This is useful for user-initiated cancellation.
 
