@@ -22,7 +22,6 @@ class ProcessManagerInfo {
   final List<String> stdoutLines = [];
   final List<String> stderrLines = [];
 
-  final Completer<int?> _exitCodeCompleter = Completer<int?>();
   final ProcessManagerService _service; // Reference to the parent service
 
   ProcessManagerInfo({
@@ -33,16 +32,8 @@ class ProcessManagerInfo {
     this.status = ProcessManagerStatus.running,
   }) : _service = service;
 
-  /// A Future that completes with the exit code when the process terminates.
-  Future<int?> get exitCodeFuture => _exitCodeCompleter.future;
-
   // Called by the service to clean up resources when the process is done.
-  void dispose() {
-    // Complete the exit code future if not already completed
-    if (!_exitCodeCompleter.isCompleted) {
-      _exitCodeCompleter.complete(exitCode);
-    }
-  }
+  void dispose() {}
 
   /// Stops this specific process by calling the parent service's stop method.
   bool stop() {
@@ -119,18 +110,12 @@ class ProcessManagerService {
       process.exitCode.then((exitCode) {
         newProcessInfo.status = ProcessManagerStatus.exited;
         newProcessInfo.exitCode = exitCode;
-        if (!newProcessInfo._exitCodeCompleter.isCompleted) {
-          newProcessInfo._exitCodeCompleter.complete(exitCode);
-        }
         _activeProcesses.remove(processId);
         newProcessInfo.dispose();
         onExit?.call(newProcessInfo);
       }).catchError((e) {
         newProcessInfo.status = ProcessManagerStatus.exited;
         newProcessInfo.exitCode = -1;
-        if (!newProcessInfo._exitCodeCompleter.isCompleted) {
-          newProcessInfo._exitCodeCompleter.complete(-1);
-        }
         _activeProcesses.remove(processId);
         newProcessInfo.dispose();
         onExit?.call(newProcessInfo);
@@ -148,7 +133,6 @@ class ProcessManagerService {
       processInfo.lastOutputLine = 'Failed to start process: $e';
       processInfo.isErrorOutput = true;
       processInfo.exitCode = -1;
-      processInfo._exitCodeCompleter.complete(-1);
       _activeProcesses[processId] = processInfo;
       return processInfo;
     }
@@ -172,7 +156,6 @@ class ProcessManagerService {
       processInfo.lastOutputLine = message;
       processInfo.isErrorOutput = false;
       processInfo.exitCode = exitCode;
-      processInfo._exitCodeCompleter.complete(exitCode);
 
       // Actually kill the process
       final didKill = Process.killPid(processInfo.pid);

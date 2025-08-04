@@ -66,6 +66,11 @@ class _RunPromptPageState extends State<RunPromptPage> {
         processInfo.isErrorOutput = true;
         if (mounted) setState(() {});
       },
+      onExit: (pmi) {
+        // Update UI state on exit
+        print('Process exited: ${pmi.id} with exit code ${pmi.exitCode}');
+        if (mounted) setState(() {});
+      },
     );
 
     // If processId is not empty, it means the process was started successfully.
@@ -73,16 +78,6 @@ class _RunPromptPageState extends State<RunPromptPage> {
       setState(() {
         _processes[processInfo.id] = processInfo;
       });
-
-        // Listen for process exit from the service
-        processInfo.exitCodeFuture.then((exitCode) {
-          if (mounted) {
-            setState(() {
-              // The processInfo object is already updated by the service, so we just
-              // need to trigger a rebuild.
-            });
-          }
-        });
     }
     
     // Clear the text field after submitting
